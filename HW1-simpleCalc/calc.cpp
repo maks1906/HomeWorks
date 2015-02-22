@@ -128,7 +128,7 @@ int expression::calculatesegment(int left,int right)
 	for(int i = left;i <= right;i++)
 		if(expr[i].symbol == '+')
 		{
-			expr[i - 1].number = expr[i - 1].number + expr[i + 1].number;
+			expr[i - 1].number = expr[i - 1].number + expr[i + 1].number;	
 			toleft(i + 2,i);
 			i--;
 			right -= 2;
@@ -161,9 +161,6 @@ string expression::checkcorrect()
 	{
 		return errormessage;
 	}
-	for(int i = 0;i < expr.size() - 1;i++)
-		cout << expr[i].type << " ";
-	cout << endl;
 	for(int i = 1;i < expr.size() - 1;i++)
 		if(expr[i].type == 0 && expr[i - 1].type == 0 ||
 		   expr[i].type == 1 && expr[i - 1].type == 1 && 
@@ -196,8 +193,9 @@ string expression::checkcorrect()
 
 int expression::getexpr()
 {
-	char current, last = 0;
+	char current, last = ' ';
 	object buffer;
+	int signum = 1;
 	while((current = getchar()) != '\n')
 	{
 		if(!isvalid(current))
@@ -210,18 +208,26 @@ int expression::getexpr()
 		{
 			if('0' <= current && current <= '9')
 			{
-				if(buffer.type != 0 && last != ' ' && last != 0)
+				if(buffer.type != 0 && last != ' ')
 				{
-					errorfound = 1;
-					errormessage = "Missing spaces";
-					return 0;
+					if(last == '-')
+					{
+						signum = -1;
+					}
+					else
+					{
+						errorfound = 1;
+						errormessage = "Missing spaces";
+						return 0;
+					}
 				}
+				buffer.clear();
 				buffer.type = 0;
-				buffer.number = buffer.number*10 + (int)(current - '0');
+				buffer.number = buffer.number * 10 + (int)(current - '0') * signum;
 			}
 			else
 			{
-				if(last != ' ' && last != 0)
+				if(last != ' ')
 				{
 					errorfound = 1;
 					errormessage = "Missing spaces";
@@ -237,6 +243,7 @@ int expression::getexpr()
 			{
 				expr.push_back(buffer);
 				buffer.clear();
+				signum = 1;
 			}
 		}
 		last = current;
