@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+
 using namespace std;
 
 
@@ -21,17 +22,22 @@ struct object {
 class expression {
 	private:	
 		vector<object> expr; // given expression		
-		int errorfound = 0;
-		string errormessage;
-		void toleft(int from,int to); // move expression to the left 
+		char priority[255]; // "+", "-" - 2, "*", "/", "%" - 1  
 		int calculatesegment(int left,int right); // result of expression between left and right inclusive. 
-		int closebracketindex(int left); // index of close bracket of given open bracket.
+		int operation(int x, int y, char o); // return (x o y)
 	public:
 		int getexpr(); // read expresion from input
 		string checkcorrect(); // check the corretc of expression structure 
 		void calculate(); // calculate expression 
 		int getresult(); // return result
 };
+
+static class errors
+{
+	public:
+	 int errorfound;
+	 string message;
+} err;
 
 bool isvalid(char str); // check the validity of symbol
 
@@ -55,8 +61,37 @@ bool isvalid(char str)
 
 int expression::getresult()
 {
-	if(expr[0].type == 0)
-		return expr[0].number;
+	return expr[0].number;
+}
+
+
+int expression::operation(int x, int y, char o)
+{
+	if(o == '+')
+		return x + y;
+	if(o == '-')
+		return x - y;
+	if(o == '*')
+		return x * y;
+	if(o == '/')
+		if(y == 0)
+		{
+			err.errorfound = 1;
+			err.message = "division by zero";
+			return 0;
+		}
+		else
+			return x / y;
+	if(o == '%')
+		if(y == 0)
+		{
+			err.errorfound = 1;
+			err.message = "division by zero";
+			return 0;
+		}
+		else
+			return x % y;
+		
 }
 
 
@@ -69,109 +104,88 @@ void expression::calculate()
 
 int expression::calculatesegment(int left,int right)
 {
-	
 	if(left > right)
-		return 0;
-	// find brackets and replace them their results	
+		return 1;
+	vector<int> number; // stack analog
+	vector<int> oper; // stack analog
+	bool nwp = 0;
 	for(int i = left;i <= right;i++)
-		if(expr[i].symbol == '(')
+	{
+		nwp = 0;
+		if(expr[i].type == 1)
 		{
-			int close = closebracketindex(i);
-			if(close == i + 1)
+			if(expr[i].symbol == '(')
 			{
-				expr[i].number = 1;
-				toleft(i + 2,i + 1);
-				right -= 1;
+				int balance = 1;
+				int j = i;
+				while(balance > 0)
+				{
+					j++;
+					if(expr[j].type == 1)
+					{
+						if(expr[j].symbol == '(')
+							balance++;
+						if(expr[j].symbol == ')')
+							balance--;
+					}
+				}
+				number.push_back(calculatesegment(i + 1,j - 1));
+				nwp = 1;
+				i = j;
 			}
 			else
 			{
-				expr[i].number = calculatesegment(i + 1,close - 1); 
-				toleft(i + 3,i + 1);
-				right -= close - i;
+				oper.push_back(expr[i].symbol);
 			}
-			expr[i].type = 0;
 		}
-	// now we don't have brackets
-	// find all operation in priority order : / , % , * , - , +
-	for(int i = left;i <= right;i++)
-		if(expr[i].symbol == '/')
+		else
 		{
-			expr[i - 1].number = expr[i - 1].number / expr[i + 1].number;
-			toleft(i + 2,i);
-			i--;
-			right -= 2;
+			number.push_back(expr[i].number);
+			nwp = 1;
 		}
-	for(int i = left;i <= right;i++)
-		if(expr[i].symbol == '%')
-		{
-			expr[i - 1].number = expr[i - 1].number % expr[i + 1].number;
-			toleft(i + 2,i);
-			i--;
-			right -= 2;
-		}
-	for(int i = left;i <= right;i++)
-		if(expr[i].symbol == '*')
-		{
-			expr[i - 1].number = expr[i - 1].number * expr[i + 1].number;
-			toleft(i + 2,i);
-			i--;
-			right -= 2;
-		}
-	for(int i = left;i <= right;i++)
-		if(expr[i].symbol == '-')
-		{
-			expr[i - 1].number = expr[i - 1].number - expr[i + 1].number;
-			toleft(i + 2,i);
-			i--;
-			right -= 2;
-		}
-	for(int i = left;i <= right;i++)
-		if(expr[i].symbol == '+')
-		{
-			expr[i - 1].number = expr[i - 1].number + expr[i + 1].number;	
-			toleft(i + 2,i);
-			i--;
-			right -= 2;
-		}
+		if(nwp)
+		while(number.size() >= 2 &&
+			 (oper.size() >= 2 && priority[oper[oper.size() - 1]] < priority[oper[oper.size() - 2]] ||
+		      oper.size() >= 1 && priority[oper[oper.size() - 1]] == 1))
+		      {
+		      	int res = operation(number[number.size() - 2],number[number.size() - 1],oper[oper.size() - 1]);
+				number.pop_back();
+		      	number.pop_back();
+		      	oper.pop_back();
+		      	number.push_back(res);
+		      }
+		nwp = 0;    
+	}
+	while(number.size() >= 2 && oper.size() >= 1)
+	{
+		int res = operation(number[number.size() - 2],number[number.size() - 1],oper[oper.size() - 1]);
+		number.pop_back();
+      	number.pop_back();
+	   	oper.pop_back();
+	   	number.push_back(res);
+	}
+	if(number.size() != 1 || oper.size() != 0)
+		err.errorfound = 1;
+	return number[0];	
 	
-	return expr[left].number;	
 }
 
-int expression::closebracketindex(int left)
-{
-	int balance = 1;
-	int result = left;
-	while(balance != 0 && result < expr.size())
-	{
-		result++;
-		if(expr[result].type == 1)
-		{
-			if(expr[result].symbol == '(')
-				balance++;
-			if(expr[result].symbol == ')')
-				balance--;
-		}
-	}
-	return result;
-}
 
 string expression::checkcorrect()
 {
-	if(errorfound)
-	{
-		return errormessage;
-	}
-	for(int i = 1;i < expr.size() - 1;i++)
+	for(int i = 1;i < expr.size(); i++)
 		if(expr[i].type == 0 && expr[i - 1].type == 0 ||
 		   expr[i].type == 1 && expr[i - 1].type == 1 && 
 		  (expr[i].symbol != ')' && expr[i].symbol != '(' && expr[i - 1].symbol == '(' ||
 		   expr[i - 1].symbol != '(' && expr[i - 1].symbol != ')' && expr[i].symbol == ')' || 
-		   expr[i].symbol != '(' && expr[i].symbol != ')' && expr[i - 1].symbol != ')' && expr[i - 1].symbol != '(') || 
+		   expr[i].symbol != '(' && expr[i].symbol != ')' && expr[i - 1].symbol != ')' && expr[i - 1].symbol != '(' ||
+		   expr[i].symbol == '(' && expr[i - 1].symbol == ')') || 
 		   expr[i - 1].type == 0 && expr[i].symbol == '(' || 
 		   expr[i].type == 0 && expr[i - 1].symbol == ')')
 		   
 		{
-			return "Invalid structure";
+			err.errorfound = 1;
+			err.message = "Invalid structure";
 		}
 	
 	int balance = 0;
@@ -186,7 +200,8 @@ string expression::checkcorrect()
 	}
 	if(balance)
 	{
-		return "Brackets missed or extra";
+		err.errorfound = 1;
+		err.message = "Brackets missed or extra";
 	}
 	return "";
 }
@@ -200,8 +215,8 @@ int expression::getexpr()
 	{
 		if(!isvalid(current))
 		{
-			errorfound = 1;
-			errormessage = "Invalid symbol";
+			err.errorfound = 1;
+			err.message = "Invalid symbol";
 			return 0; 
 		}
 		if(current != ' ')
@@ -216,12 +231,11 @@ int expression::getexpr()
 					}
 					else
 					{
-						errorfound = 1;
-						errormessage = "Missing spaces";
+						err.errorfound = 1;
+						err.message = "Missing spaces";
 						return 0;
 					}
 				}
-				buffer.clear();
 				buffer.type = 0;
 				buffer.number = buffer.number * 10 + (int)(current - '0') * signum;
 			}
@@ -229,8 +243,8 @@ int expression::getexpr()
 			{
 				if(last != ' ')
 				{
-					errorfound = 1;
-					errormessage = "Missing spaces";
+					err.errorfound = 1;
+					err.message = "Missing spaces";
 					return 0;
 				}
 				buffer.type = 1;
@@ -251,37 +265,32 @@ int expression::getexpr()
 	if(buffer.type >= 0)
 		expr.push_back(buffer);
 	buffer.clear();
-	buffer.type = 1;
-	buffer.symbol = '#';
-	expr.push_back(buffer);	
+	priority['+'] = 2;
+	priority['+'] = 2;
+	priority['%'] = 1;
+	priority['/'] = 1;
+	priority['*'] = 1;
 	return 1;
 }
 
-void expression::toleft(int from,int to)
-{
-	while(from < expr.size())
-	{
-		expr[to] = expr[from];
-		to++;
-		from++;
-	}
-	expr.resize(expr.size() - (from - to));
-}
 
 
 int main() {
 	//freopen("input.txt","r",stdin);
-    expression mye;
+	expression mye;
     mye.getexpr();
     string check = mye.checkcorrect();
-	if(check.empty())
+	if(err.errorfound == 0)
     {
     	mye.calculate();
-		cout << mye.getresult() << endl;
+    	if(err.errorfound == 0)
+			cout << mye.getresult() << endl;
+		else
+			cout << err.message;
 	}
 	else
 	{
-		cout << check;
+		cout << err.message;
 	}
     return 0;
 }
