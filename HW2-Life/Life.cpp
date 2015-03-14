@@ -1,11 +1,10 @@
 #include <stdlib.h>
 #include <iostream>
-#include <vector>
 #include <time.h>
 
 using namespace std;
 
-
+// element with (y,x) coordinates
 struct element {
 	int x;
 	int y;
@@ -30,20 +29,20 @@ struct stats {
 
 class pole {	
  private:	 
-    element * list;
+    element * list; // list of elements
     int minx = 0;
     int miny = 0;
-    int maxx = 0;
-    int maxy = 0;
-    int count;
-    void update();
+    int maxx = 0; // max x coordinate of elements
+    int maxy = 0; // max y coordinate of elements
+    int count; // count of elements
+    void update(); // delete extra cols and rows, and shift pole to positive coordinates
     int ** genpole(int y, int x, bool cl); // generate pole size of y * x, cl = 1 - clear, not otherwise
  public:
-    pole(int x, int y, int number, int random, vector<element> list);
-	pole() {};
-	int print(int y0,int x0, int camerax, int cameray);
-	void startvision();
-	stats nextstep();
+    pole(int x, int y, int number, int random, element* list); //constructor creates pole with size y*x, n elements in 		random positions if random == 1, else position defines by list; 
+	pole() {}; // default constructor
+	int print(int y0,int x0, int camerax, int cameray); // print areay with size cameray*camerax, with top left 				coordinates (y0,x0)
+	void startvision(); // start to showing pole
+	stats nextstep(); // it is next iteration calculation
 };
 
 void pole::update()
@@ -81,7 +80,7 @@ void pole::update()
 
 }
 
-pole::pole(int y, int x, int number, int random, vector<element> startlist)
+pole::pole(int y, int x, int number, int random, element* startlist)
 {
 	int ** map = genpole(y, x, 1);
 	list = new element[number];
@@ -101,7 +100,7 @@ pole::pole(int y, int x, int number, int random, vector<element> startlist)
 		}
 	else
 	{
-		for(int i = 0;i < startlist.size();i++)
+		for(int i = 0;i < number;i++)
 		{
 			list[i].x = startlist[i].x;
 			list[i].y = startlist[i].y;
@@ -109,8 +108,9 @@ pole::pole(int y, int x, int number, int random, vector<element> startlist)
 	}
 	
 	count =  number;
-	update();	
-	delete map;
+	update();
+	for(int i = 0;i < y;i++)	
+		delete[] map[i];
 }
 
 int ** pole::genpole(int y,int x,bool cl)
@@ -154,7 +154,8 @@ int pole::print(int y0, int x0, int cameray, int camerax)
 		cout << endl;
 	}
 	
-	delete map;
+	for(int i = 0;i < maxy;i++)	
+		delete[] map[i];
 	return 0;
 }
 
@@ -163,6 +164,7 @@ void pole::startvision()
 	if(count == 0)
 	{
 		cout << "All dieds"; 
+		return ;
 	}
 	int curx = 0, cury = 0, camera = 20;
 	char p;
@@ -252,7 +254,8 @@ stats pole::nextstep()
 						result.died++;
 			}
 		}
-	delete map;
+	for(int i = 0;i < maxy;i++)	
+		delete[] map[i];	
 	delete list;
 	list = new element[count];
 	int cur = 0;
@@ -264,9 +267,9 @@ stats pole::nextstep()
 				list[cur].y = i;
 				cur++;
 			}		
-	
+	for(int i = 0;i < maxy + 2;i++)	
+		delete[] next[i];
 	update();
-	delete next;
 	return result;
 }   
 
@@ -291,23 +294,25 @@ int main() {
 	cin >> r;
 	pole myp;
 	if(r == 1)
-		myp = pole(x,y,n,0,vector<element>(0));
+		myp = pole(x,y,n,0,NULL);
 	else
 	{
-		vector<element> list(n);
+		element* list = new element[n];
 		cout << "Write list of coordinates(y, x):" << endl;
 		for(int i = 0; i < n;i++)
 			cin >> list[i].y >> list[i].x;
-		myp = pole(x,y,n,1,list);	
+		myp = pole(x,y,n,1,list);
+		delete[] list;	
 	}
 	myp.print(0,0,10000,10000); // it is a trying to print all pole 
 	stats res(0,0,0), cur(0,0,0), last(-1,-1,-1);
-	vector<int> unchange;
+	int unchange[10];
+	int count = 0;
 	for(int i = 0;i < t; i++)
 	{
 		cur = myp.nextstep();
 		if(cur.population == last.population)
-			unchange.push_back(i);
+			unchange[count++] = i;
 		res = res + cur;
 		
 		if((i + 1)%10 == 0)
@@ -318,18 +323,19 @@ int main() {
 				cout << "    " << (double)res.borned / res.died << endl;
 			else
 				cout << "    No died" << endl;
-			if(unchange.size() > 0)
+			if(count > 0)
 			{
 				cout << "    Unchanged iterations: ";
-				for(int j = 0;j < unchange.size();j++)
+				for(int j = 0;j < count;j++)
 					cout << unchange[j] << " ";
 				cout << endl;
 				res = stats(0,0,0);
-				unchange.clear();
 			}
+			count = 0;
 		}
 		last = cur;
 	}
+	
 	cout << " !---------! " << endl;
 	cout << "Population increasing: " << cur.population - n << endl;
 	myp.startvision(); 
