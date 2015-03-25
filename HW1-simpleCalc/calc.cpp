@@ -175,6 +175,19 @@ int expression::calculatesegment(int left,int right)
 
 string expression::checkcorrect()
 {
+	if(expr.size() == 0)
+	{
+		err.errorfound = 1;
+		err.message = "Invalid structure";
+	}
+	if(expr.size() == 1)
+	{
+		if(expr[0].type == 1)
+		{
+			err.errorfound = 1;
+			err.message = "Invalid structure";
+		}
+	}
 	for(int i = 1;i < expr.size(); i++)
 		if(expr[i].type == 0 && expr[i - 1].type == 0 ||
 		   expr[i].type == 1 && expr[i - 1].type == 1 && 
@@ -277,7 +290,8 @@ int expression::getexpr()
 
 
 
-int main() {
+int main() 
+{
 	//freopen("input.txt","r",stdin);
 	expression mye;
     mye.getexpr();
@@ -296,3 +310,4 @@ int main() {
 	}
     return 0;
 }
+
