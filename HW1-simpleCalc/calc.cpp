@@ -179,6 +179,7 @@ string expression::checkcorrect()
 	{
 		err.errorfound = 1;
 		err.message = "Invalid structure";
+		return "";
 	}
 	if(expr.size() == 1)
 	{
@@ -186,6 +187,7 @@ string expression::checkcorrect()
 		{
 			err.errorfound = 1;
 			err.message = "Invalid structure";
+			return "";
 		}
 	}
 	for(int i = 1;i < expr.size(); i++)
@@ -202,7 +204,12 @@ string expression::checkcorrect()
 			err.errorfound = 1;
 			err.message = "Invalid structure";
 		}
-	
+	if(expr[expr.size() - 1].type == 1 && 
+	   expr[expr.size() - 1].symbol != ')')
+	   {
+	   		err.errorfound = 1;
+			err.message = "Invalid structure";
+	   }
 	int balance = 0;
 	for(int i = 0;i < expr.size();i++)
 	{
