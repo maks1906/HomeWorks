@@ -1,5 +1,6 @@
 #include<iostream>
 #include<string>
+#include<cstdio>
 #include<map>
 #include<vector>
 
@@ -80,6 +81,7 @@ class settings {
 		param buf;
 		map<string, string> sets;
 		void write();
+		void getset();
 };
 
 
@@ -251,23 +253,46 @@ settings::param::param(param const & arg)
 	//it's unnecessary
 }
 
-
-settings::settings(std::string const & filename)
+void settings::getset() 
 {
-	file = filename;
-	freopen(file.c_str(),"r",stdin);
+	char * fname = new char(file.size());
+	for(int i = 0;i < file.size(); i++)
+		fname[i] = file[i];
+	FILE * input = fopen(fname, "r");
 	string s1, s2;
 	param p;
-	while(!cin.eof())
+	while(1)
 	{
-		cin >> s1 >> s2;
+		char c = 0;
+		fscanf(input,"%c",&c);
+		if(c == 0)
+			break;
+		while(c != ' ') 
+		{
+			s1 = s1 + c;
+			fscanf(input,"%c",&c);
+		}
+		fscanf(input,"%c",&c);
+		while(c != ';') 
+		{
+			s2 = s2 + c;
+			fscanf(input,"%c",&c);
+		}
 		sets[s1] = s2;
 		count++; 
 		if(s2 == "undefined")
 			p = "";
 		else
 			p = s2;
+		s2 = "";
+		s1 = "";
 	}
+	fclose(input);
+}
+settings::settings(std::string const & filename)
+{
+	file = filename;
+	getset();
 }
 
 string const & settings::get(std::string const & name, 
@@ -282,50 +307,64 @@ string const & settings::get(std::string const & name,
 void settings::set(std::string const & name, 
 			std::string const & value)
 {
-	if(sets.count(name) >= 1)
-		sets[name] = value;
-	else
-		return;
+	sets[name] = value;
 	write(); 
 }
 
 void settings::write()
 {
-	freopen(file.c_str(),"w",stdout);
+
+	char * fname = new char(file.size());
+	for(int i = 0;i < file.size(); i++)
+		fname[i] = file[i];
+	FILE * output = fopen(fname, "w");
+	
 	for(map<string,string>::iterator it = sets.begin();it != sets.end();it++)
 	{
+		
+		const char *	s1 = (*it).first.c_str();
+		const char *	s2 = (*it).second.c_str();
+		
 		if((*it).second != "")
-			cout << (*it).first << " " << (*it).second << endl;
+		{
+			fprintf(output, "%s ",s1 );
+			fprintf(output, "%s",s2 );
+			fprintf(output, "%c",';');
+			
+		}
 		else	
-			cout << (*it).first << " undefined" << endl;
+			fprintf(output, "%s undefined\n",s1);
 	}
-	fclose(stdout);
+	fclose(output);
 }
 
 void settings::reset()
 {
-	for(map<string,string>::iterator it = sets.begin();it != sets.end();it++)
-	{
-		(*it).second = string("");
-	}
+	sets.clear();
+//	for(map<string,string>::iterator it = sets.begin();it != sets.end();it++)
+//	{
+//		(*it).second = string("");
+//	}
 	write();
 }
 
 void settings::reload()
 {
-	freopen(file.c_str(),"r",stdin);
-	string s1, s2;
-	count = 0;
-	param p;
-	sets.clear();
-	while(!cin.eof())
-	{
-		cin >> s1 >> s2;
-		sets[s1] = s2;
-		count++; 
-		if(s2 == "undefined")
-			p = "";
-		else
-			p = s2;
-	}
+	getset();
 }
+
+/*
+int main() {
+	settings my("asd.txt");
+	string s = "asd";
+	my.set(s, "mye");
+	my.set("ert", "ertertert");
+	my.reset();
+	my.set("ert", "erteasdasdrtert");
+	
+	cout << my.get("ad","des") << endl;
+
+	return 0;
+}
+
+*/
