@@ -80,7 +80,13 @@ class settings {
 		int count = 0;
 		param buf;
 		map<string, string> sets;
+		/**
+		 * Write settings in file
+		 */
 		void write();
+		/**
+		 * Get settings from file \file
+		 */
 		void getset();
 };
 
